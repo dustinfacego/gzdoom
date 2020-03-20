@@ -1,17 +1,10 @@
 #pragma once
 
+#include <string>
 #include "doomtype.h"
 #include "w_wad.h"
 #include "files.h"
-#include "timiditypp/timidity_file.h"
-
-enum
-{
-    SF_SF2 = 1,
-    SF_GUS = 2,
-    SF_WOPL = 4,
-    SF_WOPN = 8
-};
+#include "filereadermusicinterface.h"
 
 struct FSoundFontInfo
 {
@@ -27,7 +20,7 @@ struct FSoundFontInfo
 //
 //==========================================================================
 
-class FSoundFontReader : public TimidityPlus::SoundFontReaderInterface
+class FSoundFontReader
 {
 protected:
     // This is only doable for loose config files that get set as sound fonts. All other cases read from a contained environment where this does not apply.
@@ -59,11 +52,13 @@ public:
 	}
 
 	virtual FileReader Open(const char* name, std::string &filename);
-	virtual struct TimidityPlus::timidity_file* open_timidityplus_file(const char* name);
-	virtual void timidityplus_add_path(const char* name)
-	{
-		return AddPath(name);
-	}
+    virtual void close()
+    {
+        delete this;
+    }
+
+	ZMusicCustomReader* open_interface(const char* name);
+
 };
 
 //==========================================================================
@@ -133,7 +128,7 @@ class FPatchSetReader : public FSoundFontReader
 	FString mFullPathToConfig;
 
 public:
-	FPatchSetReader();
+	FPatchSetReader(FileReader &reader);
 	FPatchSetReader(const char *filename);
 	virtual FileReader OpenMainConfigFile() override;
 	virtual FileReader OpenFile(const char *name) override;

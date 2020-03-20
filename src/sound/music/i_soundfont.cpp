@@ -39,37 +39,18 @@
 #include "cmdlib.h"
 #include "i_system.h"
 #include "gameconfigfile.h"
+#include "filereadermusicinterface.h"
+#include <zmusic.h>
 #include "resourcefiles/resourcefile.h"
-#include "timiditypp/common.h"
+#include "version.h"
+
+//==========================================================================
+//
+//
+//
+//==========================================================================
 
 FSoundFontManager sfmanager;
-
-struct timidity_file_FileReader : public TimidityPlus::timidity_file
-{
-	FileReader fr;
-
-	char* gets(char* buff, int n) override
-	{
-		if (!fr.isOpen()) return nullptr;
-		return fr.Gets(buff, n);
-	}
-	long read(void* buff, int32_t size, int32_t nitems) override
-	{
-		if (!fr.isOpen()) return 0;
-		return (long)fr.Read(buff, size * nitems) / size;
-	}
-	long seek(long offset, int whence) override
-	{
-		if (!fr.isOpen()) return 0;
-		return (long)fr.Seek(offset, (FileReader::ESeek)whence);
-	}
-	long tell() override
-	{
-		if (!fr.isOpen()) return 0;
-		return (long)fr.Tell();
-	}
-
-};
 
 //==========================================================================
 //
@@ -126,6 +107,11 @@ int FSoundFontReader::pathcmp(const char *p1, const char *p2)
 	return mCaseSensitivePaths? strcmp(p1, p2) : stricmp(p1, p2);
 }
 
+//==========================================================================
+//
+//
+//
+//==========================================================================
 
 FileReader FSoundFontReader::Open(const char *name, std::string& filename)
 {
@@ -146,21 +132,18 @@ FileReader FSoundFontReader::Open(const char *name, std::string& filename)
 
 //==========================================================================
 //
-// This is the interface function for Timidity++
+//
 //
 //==========================================================================
 
-struct TimidityPlus::timidity_file* FSoundFontReader::open_timidityplus_file(const char* name)
+ZMusicCustomReader* FSoundFontReader::open_interface(const char* name)
 {
 	std::string filename;
-
+	
 	FileReader fr = Open(name, filename);
 	if (!fr.isOpen()) return nullptr;
-
-	auto tf = new timidity_file_FileReader;
-	tf->fr = std::move(fr);
-	tf->filename = std::move(filename);
-	return tf;
+	auto fri = GetMusicReader(fr);
+	return fri;
 }
 
 
@@ -284,11 +267,6 @@ FPatchSetReader::FPatchSetReader(const char *filename)
 	}
 }
 
-FPatchSetReader::FPatchSetReader()
-{
-	// This constructor is for reading DMXGUS
-	mAllowAbsolutePaths = true;
-}
 
 FileReader FPatchSetReader::OpenMainConfigFile()
 {
@@ -447,7 +425,7 @@ void FSoundFontManager::CollectSoundfonts()
 
 	if (soundfonts.Size() == 0)
 	{
-		ProcessOneFile(NicePath("$PROGDIR/soundfonts/gzdoom.sf2"));
+		ProcessOneFile(NicePath("$PROGDIR/soundfonts/" GAMENAMELOWERCASE ".sf2"));
 	}
 }
 
